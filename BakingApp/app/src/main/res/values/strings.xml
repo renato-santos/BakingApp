@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Baking Time</string>
+    <string name="app_title">Baking Time</string>
+    <string name="error_message">An error has occurred. Please try again.</string>
+    <string name="ingredients"> Ingredients</string>
+    <string name="no_ingredients">There are no ingredients for this recipe.</string>
+    <string name="steps"> Steps</string>
+    <string name="step_by_step"> Step-by-Step</string>
+    <string name="no_steps">There are no steps for this recipe.</string>
+    <string name="sample_text_title">Lorem Ipsum</string>
+    <string name="sample_long_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </string>
+    <string name="previous">&lt;&lt; Previous</string>
+    <string name="next">Next &gt;&gt;</string>
+    <string name="app_widget_name">Widget</string>
+</resources>
