@@ -18,7 +18,14 @@ import com.renatosantos.bakingapp.model.Step;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StepActivity extends AppCompatActivity {
+public class StepActivity extends AppCompatActivity implements RecipeStepFragment.StepListener {
+
+    private static final String EXTRA_STEP_INDEX = "step_index";
+    private static final String EXTRA_RECIPE = "recipe_item";
+
+    int stepIndex = 0;
+    Recipe mRecipe;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,23 +59,21 @@ public class StepActivity extends AppCompatActivity {
             closeOnError();
         }
 
-        if (!(intent.hasExtra(DetailActivity.PARCELABLE_STEP) && (intent.hasExtra(DetailActivity.STEP_INDEX)))){
+        if (!(intent.hasExtra(DetailActivity.EXTRA_RECIPE) && (intent.hasExtra(DetailActivity.EXTRA_STEP_INDEX)))){
             closeOnError();
         }
+        else {
+            mRecipe = (Recipe) intent.getParcelableExtra(DetailActivity.EXTRA_RECIPE);
+            stepIndex = intent.getIntExtra(DetailActivity.EXTRA_STEP_INDEX, 0);
+        }
 
-        Recipe recipe = (Recipe) intent.getParcelableExtra(DetailActivity.PARCELABLE_STEP);
-        int stepIndex = intent.getIntExtra(DetailActivity.STEP_INDEX, 0);
 
-
-        RecipeStepFragment recipeStepFragment = new RecipeStepFragment();
-
-        recipeStepFragment.setRecipe(recipe);
-        recipeStepFragment.setStepIndex(stepIndex);
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction().
-                replace(R.id.recipe_step_view, recipeStepFragment)
-                .commit();
+        if (savedInstanceState == null) {
+            refreshFragment(mRecipe, stepIndex);
+        } else{
+            stepIndex = savedInstanceState.getInt(EXTRA_STEP_INDEX);
+            mRecipe = savedInstanceState.getParcelable(EXTRA_RECIPE);
+        }
 
 
     }
@@ -90,6 +95,43 @@ public class StepActivity extends AppCompatActivity {
     }
 
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(EXTRA_STEP_INDEX, stepIndex);
+        outState.putParcelable(EXTRA_RECIPE, mRecipe);
+    }
+
+    private void refreshFragment(Recipe recipe, int index){
+
+        RecipeStepFragment recipeStepFragment = new RecipeStepFragment();
+
+        recipeStepFragment.setRecipe(recipe);
+        recipeStepFragment.setStepIndex(index);
+
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager.beginTransaction().
+                replace(R.id.recipe_step_view, recipeStepFragment)
+                .commit();
+
+    }
+
+    @Override
+    public void onNext() {
+
+        if (stepIndex < mRecipe.getSteps().size() - 1) {
+            stepIndex++;
+            refreshFragment(mRecipe, stepIndex);
+        }
+    }
+
+    @Override
+    public void onPrevious() {
+        if (stepIndex > 0) {
+            stepIndex--;
+            refreshFragment(mRecipe, stepIndex);
+        }
+    }
 }
 
 

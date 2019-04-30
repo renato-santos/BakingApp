@@ -77,10 +77,13 @@ public class RecipeStepFragment extends Fragment {
 
     private static final String EXTRA_STEP_INDEX = "step_index";
     private static final String EXTRA_RECIPE = "recipe_item";
+    private static final String EXTRA_PLAYER_POSITION = "player_position";
+
 
 
     public RecipeStepFragment() {
     }
+
 
     public interface StepListener {
         void onNext();
@@ -99,7 +102,10 @@ public class RecipeStepFragment extends Fragment {
         if (savedInstanceState != null) {
             stepIndex = savedInstanceState.getInt(EXTRA_STEP_INDEX);
             mRecipe = savedInstanceState.getParcelable(EXTRA_RECIPE);
+            playerPosition = savedInstanceState.getLong(EXTRA_PLAYER_POSITION);
         }
+
+        Log.d("Test", "PlayerPosition onCreateView");
 
         populateUI(stepIndex);
 
@@ -107,8 +113,6 @@ public class RecipeStepFragment extends Fragment {
     }
 
     private void populateUI(int stepIndex){
-
-        releasePlayer();
 
         mRecipeSteps = mRecipe.getSteps();
 
@@ -118,10 +122,13 @@ public class RecipeStepFragment extends Fragment {
         if(mStepToolbar != null) {
             mStepToolbar.setTitle(step.getShortDescription());
             mDescriptionTextView.setText(step.getDescription());
-
             mPreviousButton.setEnabled(stepIndex > 0);
             mNextButton.setEnabled(stepIndex < mRecipeSteps.size() - 1);
         }
+
+        Log.d("Test", "PopulateUI: StepIndex="+ stepIndex);
+
+
 
         initializePlayer(step.getVideoURL());
     }
@@ -136,20 +143,19 @@ public class RecipeStepFragment extends Fragment {
 
                 mExoPlayerView.setVisibility(View.VISIBLE);
                 mImageNoVideo.setVisibility(View.GONE);
-                // Create an instance of the ExoPlayer.
+
                 TrackSelector trackSelector = new DefaultTrackSelector();
                 LoadControl loadControl = new DefaultLoadControl();
                 mExoPlayer = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector, loadControl);
                 mExoPlayerView.setPlayer(mExoPlayer);
-                // Prepare the MediaSource.
+
                 String userAgent = Util.getUserAgent(getContext(), "BakingApp");
                 MediaSource mediaSource = new ExtractorMediaSource(videoUri, new DefaultDataSourceFactory(
                         getContext(), userAgent), new DefaultExtractorsFactory(), null, null);
                 mExoPlayer.prepare(mediaSource);
-                mExoPlayer.setPlayWhenReady(true);
 
                 mExoPlayer.seekTo(playerPosition);
-
+                mExoPlayer.setPlayWhenReady(true);
 
             } else {
                 mExoPlayerView.setVisibility(View.GONE);
@@ -178,26 +184,27 @@ public class RecipeStepFragment extends Fragment {
         mRecipe = recipe;
     }
 
-
-
     public void setStepIndex (int index){
         stepIndex = index;
     }
 
-
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        try {
+            stepListener = (StepListener) context;
+        } catch (ClassCastException ex) {
+            throw new ClassCastException(context.toString() + " should implements interface StepListener.");
+        }
+    }
 
     @Override
     public void onPause() {
         super.onPause();
-        if(mExoPlayer != null){
-            //playerPosition = mExoPlayer.getCurrentPosition();
-            mExoPlayer.setPlayWhenReady(false);
-            Log.d("DEBUG", "PlayerPosition="+playerPosition);
-        } else {
-            playerPosition = 0;
-        }
 
-        //releasePlayer();
+        if (Util.SDK_INT <= 23) {
+            releasePlayer();
+        }
     }
 
     @Override
@@ -205,10 +212,18 @@ public class RecipeStepFragment extends Fragment {
         super.onSaveInstanceState(outState);
         outState.putInt(EXTRA_STEP_INDEX, stepIndex);
         outState.putParcelable(EXTRA_RECIPE, mRecipe);
+
+        playerPosition = mExoPlayer.getCurrentPosition();
+        outState.putLong(EXTRA_PLAYER_POSITION, playerPosition);
     }
 
-
-
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (Util.SDK_INT > 23) {
+            releasePlayer();
+        }
+    }
 
 
 
@@ -221,14 +236,14 @@ public class RecipeStepFragment extends Fragment {
     @Optional
     @OnClick(R.id.button_prev)
     public void previousStep() {
-        stepIndex--;
-        populateUI(stepIndex);
+
+        stepListener.onPrevious();
     }
 
     @Optional
     @OnClick(R.id.button_next)
     public void nextStep() {
-        stepIndex++;
-        populateUI(stepIndex);
+
+        stepListener.onNext();
     }
 }

@@ -15,12 +15,13 @@ import com.renatosantos.bakingapp.model.Recipe;
 
 import butterknife.ButterKnife;
 
-public class DetailActivity extends AppCompatActivity implements StepAdapter.ListItemClickListener {
+public class DetailActivity extends AppCompatActivity implements StepAdapter.ListItemClickListener, RecipeStepFragment.StepListener {
 
     private boolean mTwoPane;
     private Recipe mRecipe;
-    public static final String PARCELABLE_STEP = "Step";
-    public static final String STEP_INDEX = "StepIndex";
+    private int stepIndex = 0;
+    public static final String EXTRA_STEP_INDEX = "step_index";
+    public static final String EXTRA_RECIPE = "recipe_item";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,12 +33,6 @@ public class DetailActivity extends AppCompatActivity implements StepAdapter.Lis
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
 
-        if(findViewById(R.id.linear_layout_tab) != null){
-            mTwoPane = true;
-        } else {
-            mTwoPane = false;
-        }
-
         Intent intent = getIntent();
 
 
@@ -47,9 +42,21 @@ public class DetailActivity extends AppCompatActivity implements StepAdapter.Lis
 
         if (!(intent.hasExtra(MainActivity.PARCELABLE_RECIPE))){
             closeOnError();
+        }else{
+            mRecipe = (Recipe) intent.getParcelableExtra(MainActivity.PARCELABLE_RECIPE);
         }
 
-        mRecipe = (Recipe) intent.getParcelableExtra(MainActivity.PARCELABLE_RECIPE);
+        if(findViewById(R.id.linear_layout_tab) != null){
+            mTwoPane = true;
+            if (savedInstanceState == null) {
+                refreshFragment(mRecipe, stepIndex);
+            } else{
+                stepIndex = savedInstanceState.getInt(EXTRA_STEP_INDEX);
+                mRecipe = savedInstanceState.getParcelable(EXTRA_RECIPE);
+            }
+        } else {
+            mTwoPane = false;
+        }
 
         DetailListFragment detailListFragment = new DetailListFragment();
 
@@ -65,22 +72,16 @@ public class DetailActivity extends AppCompatActivity implements StepAdapter.Lis
     public void onListItemClick(int clickedItemIndex) {
 
         if(mTwoPane){
-            RecipeStepFragment recipeStepFragment = new RecipeStepFragment();
+            stepIndex = clickedItemIndex;
 
-            recipeStepFragment.setRecipe(mRecipe);
-            recipeStepFragment.setStepIndex(clickedItemIndex);
-
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            fragmentManager.beginTransaction().
-                    replace(R.id.recipe_step_view, recipeStepFragment)
-                    .commit();
+            refreshFragment(mRecipe,stepIndex);
 
 
         } else {
             Intent intent = new Intent(this, StepActivity.class);
 
-            intent.putExtra(PARCELABLE_STEP, mRecipe);
-            intent.putExtra(STEP_INDEX, clickedItemIndex);
+            intent.putExtra(EXTRA_RECIPE, mRecipe);
+            intent.putExtra(EXTRA_STEP_INDEX, clickedItemIndex);
 
             this.startActivity(intent);
         }
@@ -100,6 +101,44 @@ public class DetailActivity extends AppCompatActivity implements StepAdapter.Lis
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onNext() {
+
+        if (stepIndex < mRecipe.getSteps().size() - 1) {
+            stepIndex++;
+            refreshFragment(mRecipe, stepIndex);
+        }
+    }
+
+    @Override
+    public void onPrevious() {
+        if (stepIndex > 0) {
+            stepIndex--;
+            refreshFragment(mRecipe, stepIndex);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(EXTRA_STEP_INDEX, stepIndex);
+        outState.putParcelable(EXTRA_RECIPE, mRecipe);
+    }
+
+    private void refreshFragment(Recipe recipe, int index){
+
+        RecipeStepFragment recipeStepFragment = new RecipeStepFragment();
+
+        recipeStepFragment.setRecipe(recipe);
+        recipeStepFragment.setStepIndex(index);
+
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager.beginTransaction().
+                replace(R.id.recipe_step_view, recipeStepFragment)
+                .commit();
+
     }
 
 }
